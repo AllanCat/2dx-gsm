@@ -24,8 +24,55 @@ enum gauge_types
 
 struct chart_judgement_t
 {
-    std::uint16_t values[4];
+    std::uint32_t values[4];
 };
+
+inline auto has_32bit_gauge_memory() -> bool
+{
+    return offsets::active->gauge_memory_value_width == sizeof(std::int32_t);
+}
+
+inline auto read_groove_gauge(const std::uintptr_t addr) -> std::int32_t
+{
+    if (has_32bit_gauge_memory())
+        return *reinterpret_cast<const std::int32_t*>(addr);
+
+    return *reinterpret_cast<const std::int16_t*>(addr);
+}
+
+inline auto write_groove_gauge(const std::uintptr_t addr, const std::int32_t value) -> void
+{
+    if (has_32bit_gauge_memory())
+        *reinterpret_cast<std::int32_t*>(addr) = value;
+    else
+        *reinterpret_cast<std::int16_t*>(addr) = static_cast<std::int16_t>(value);
+}
+
+inline auto read_chart_judgement(const std::uintptr_t addr) -> chart_judgement_t
+{
+    auto result = chart_judgement_t {};
+
+    for (auto index = 0; index < 4; ++index)
+    {
+        if (has_32bit_gauge_memory())
+            result.values[index] = reinterpret_cast<const std::uint32_t*>(addr)[index];
+        else
+            result.values[index] = reinterpret_cast<const std::uint16_t*>(addr)[index];
+    }
+
+    return result;
+}
+
+inline auto write_chart_judgement(const std::uintptr_t addr, const chart_judgement_t& value) -> void
+{
+    for (auto index = 0; index < 4; ++index)
+    {
+        if (has_32bit_gauge_memory())
+            reinterpret_cast<std::uint32_t*>(addr)[index] = value.values[index];
+        else
+            reinterpret_cast<std::uint16_t*>(addr)[index] = static_cast<std::uint16_t>(value.values[index]);
+    }
+}
 
 struct COptionGameData;
 
@@ -64,14 +111,14 @@ extern void* (*set_gauge_fn) (COptionGameData*, int, std::uint32_t, int);
 
 extern std::uint32_t* input_ptr;
 
-extern std::int16_t* p1_groove_gauge_ptr;
-extern std::int16_t* p2_groove_gauge_ptr;
+extern std::uintptr_t p1_groove_gauge_addr;
+extern std::uintptr_t p2_groove_gauge_addr;
 
 extern std::int32_t* p1_result_graph_ptr;
 extern std::int32_t* p2_result_graph_ptr;
 
-extern chart_judgement_t* p1_chart_judgement_ptr;
-extern chart_judgement_t* p2_chart_judgement_ptr;
+extern std::uintptr_t p1_chart_judgement_addr;
+extern std::uintptr_t p2_chart_judgement_addr;
 
 extern std::uint32_t* p1_gauge_option_ptr;
 extern std::uint32_t* p2_gauge_option_ptr;

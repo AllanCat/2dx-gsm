@@ -10,6 +10,7 @@ struct binary_info
     std::uint64_t nt_code_size;
     std::uint64_t nt_entrypoint;
     std::uint64_t nt_image_size;
+    std::uint8_t gauge_memory_value_width;
 
     virtual ~binary_info() = default;
     virtual void resolve_rva(std::uintptr_t base) = 0;

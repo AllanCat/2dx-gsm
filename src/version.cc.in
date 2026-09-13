@@ -11,6 +11,7 @@ struct bm2dx_impl_@EXPECTED_BM2DX_PRODUCT_VERSION@_@EXPECTED_BM2DX_PRODUCT_TYPE@
         nt_code_size = @EXPECTED_BM2DX_NT_CODE_SIZE@;
         nt_entrypoint = @EXPECTED_BM2DX_NT_ENTRYPOINT@;
         nt_image_size = @EXPECTED_BM2DX_NT_IMAGE_SIZE@;
+        gauge_memory_value_width = @GAUGE_MEMORY_VALUE_WIDTH@;
 
         register_binary_info(this);
     }

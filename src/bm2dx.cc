@@ -12,14 +12,14 @@ decltype(set_gauge_fn) set_gauge_fn = nullptr;
 
 decltype(input_ptr) input_ptr = nullptr;
 
-decltype(p1_groove_gauge_ptr) p1_groove_gauge_ptr = nullptr;
-decltype(p2_groove_gauge_ptr) p2_groove_gauge_ptr = nullptr;
+std::uintptr_t p1_groove_gauge_addr = 0;
+std::uintptr_t p2_groove_gauge_addr = 0;
 
 decltype(p1_result_graph_ptr) p1_result_graph_ptr = nullptr;
 decltype(p2_result_graph_ptr) p2_result_graph_ptr = nullptr;
 
-decltype(p1_chart_judgement_ptr) p1_chart_judgement_ptr = nullptr;
-decltype(p2_chart_judgement_ptr) p2_chart_judgement_ptr = nullptr;
+std::uintptr_t p1_chart_judgement_addr = 0;
+std::uintptr_t p2_chart_judgement_addr = 0;
 
 decltype(p1_gauge_option_ptr) p1_gauge_option_ptr = nullptr;
 decltype(p2_gauge_option_ptr) p2_gauge_option_ptr = nullptr;
@@ -56,14 +56,14 @@ void iidx_gsm_load(HMODULE bm2dx)
 
     input_ptr = reinterpret_cast<decltype(input_ptr)>(offsets::input_ptr);
 
-    p1_groove_gauge_ptr = reinterpret_cast<decltype(p1_groove_gauge_ptr)>(offsets::p1_groove_gauge_ptr);
-    p2_groove_gauge_ptr = reinterpret_cast<decltype(p2_groove_gauge_ptr)>(offsets::p2_groove_gauge_ptr);
+    p1_groove_gauge_addr = offsets::p1_groove_gauge_ptr;
+    p2_groove_gauge_addr = offsets::p2_groove_gauge_ptr;
 
     p1_result_graph_ptr = reinterpret_cast<decltype(p1_result_graph_ptr)>(offsets::p1_result_graph_ptr);
     p2_result_graph_ptr = reinterpret_cast<decltype(p2_result_graph_ptr)>(offsets::p2_result_graph_ptr);
 
-    p1_chart_judgement_ptr = reinterpret_cast<decltype(p1_chart_judgement_ptr)>(offsets::p1_chart_judgement_ptr);
-    p2_chart_judgement_ptr = reinterpret_cast<decltype(p2_chart_judgement_ptr)>(offsets::p2_chart_judgement_ptr);
+    p1_chart_judgement_addr = offsets::p1_chart_judgement_ptr;
+    p2_chart_judgement_addr = offsets::p2_chart_judgement_ptr;
 
     p1_gauge_option_ptr = reinterpret_cast<decltype(p1_gauge_option_ptr)>(offsets::p1_gauge_option_ptr);
     p2_gauge_option_ptr = reinterpret_cast<decltype(p2_gauge_option_ptr)>(offsets::p2_gauge_option_ptr);

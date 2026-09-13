@@ -22,8 +22,8 @@ std::uint8_t p1_starting_gauge_type;
 std::uint8_t p2_starting_gauge_type;
 std::uint8_t dp_starting_gauge_type;
 
-std::int16_t p1_gauge_values[5];
-std::int16_t p2_gauge_values[5];
+std::int32_t p1_gauge_values[5];
+std::int32_t p2_gauge_values[5];
 
 std::int16_t p1_graph_values[5][GAUGE_POINTS];
 std::int16_t p2_graph_values[5][GAUGE_POINTS];
@@ -50,7 +50,7 @@ std::unordered_map<std::string_view, std::string_view> texture_remap = {
 std::int8_t gauge_priorities[] = {  2,               0,      1,      3,         4};
 const char* gauge_names[] = {"NORMAL", "ASSISTED EASY", "EASY", "HARD", "EX HARD"};
 
-std::int16_t default_gauge_values[5] = {
+std::int32_t default_gauge_values[5] = {
     (22 * 50), // NORMAL
     (22 * 50), // ASSISTED EASY
     (22 * 50), // EASY
@@ -132,7 +132,7 @@ auto is_valid_game_type() -> bool
     return patch_state;
 }
 
-bool can_shift_to_gauge(gauge_types type, const std::int16_t* gauge_values, const std::uint8_t starting_gauge)
+bool can_shift_to_gauge(gauge_types type, const std::int32_t* gauge_values, const std::uint8_t starting_gauge)
 {
     // check for validity
     if (gauge_values[type] > (100 * 50))
@@ -165,7 +165,7 @@ bool can_shift_to_gauge(gauge_types type, const std::int16_t* gauge_values, cons
     return std::ranges::find(gauge_shifts, type) != gauge_shifts.end();
 }
 
-std::uint8_t get_most_appropriate_gauge(const std::int16_t* gauge_values, const std::uint8_t starting_gauge)
+std::uint8_t get_most_appropriate_gauge(const std::int32_t* gauge_values, const std::uint8_t starting_gauge)
 {
     // use different bottom shiftable gauges for SP/DP
     auto bottom_shiftable_gauge = (state_ptr->play_style == 0 ?
@@ -251,9 +251,10 @@ void* replacement_calculate_chart_judge(std::int64_t p1_notes, std::int64_t p2_n
     // addresses a bug where starting on a hard gauge, dropping to a normal gauge, then quick retrying
     // would then result in the starting gauge value being 22% despite also being a hard gauge. was mostly
     // a cosmetic issue, since it would jump back to the correct value after the first note, but this fixes it.
-    if (p1) *p1_groove_gauge_ptr = p1_gauge_values[p1_gauge_type.get()];
-    if (p2) *p2_groove_gauge_ptr = p2_gauge_values[p2_gauge_type.get()];
-    if (dp) (p1 ? *p1_groove_gauge_ptr: *p2_groove_gauge_ptr) = (p1 ? p1_gauge_values: p2_gauge_values)[dp_gauge_type.get()];
+    if (p1) write_groove_gauge(p1_groove_gauge_addr, p1_gauge_values[p1_gauge_type.get()]);
+    if (p2) write_groove_gauge(p2_groove_gauge_addr, p2_gauge_values[p2_gauge_type.get()]);
+    if (dp) write_groove_gauge(p1 ? p1_groove_gauge_addr : p2_groove_gauge_addr,
+        (p1 ? p1_gauge_values : p2_gauge_values)[dp_gauge_type.get()]);
 
     // call the original function
     return result;
@@ -269,11 +270,11 @@ void replacement_update_groove_gauge(int player, int note_judge)
     auto dp = (state_ptr->play_style == 1);
 
     // per-player specifics
-    auto& player_gauge_value_ptr = (player == 0 ? p1_groove_gauge_ptr: p2_groove_gauge_ptr);
+    auto player_gauge_value_addr = (player == 0 ? p1_groove_gauge_addr : p2_groove_gauge_addr);
     auto& player_gauge_type = (dp ? dp_gauge_type: (player == 0 ? p1_gauge_type: p2_gauge_type));
     auto& player_gauge_option_ptr = (player == 0 ? p1_gauge_option_ptr: p2_gauge_option_ptr);
     auto& player_chart_judgements = (player == 0 ? p1_chart_judgements: p2_chart_judgements);
-    auto& player_chart_judgement_ptr = (player == 0 ? p1_chart_judgement_ptr: p2_chart_judgement_ptr);
+    auto player_chart_judgement_addr = (player == 0 ? p1_chart_judgement_addr : p2_chart_judgement_addr);
     auto& player_starting_gauge = (dp ? dp_starting_gauge_type: (player == 0 ? p1_starting_gauge_type: p2_starting_gauge_type));
     auto& player_gauge_values = (player == 0 ? p1_gauge_values: p2_gauge_values);
     auto& player_graph_values = (player == 0 ? p1_graph_values: p2_graph_values);
@@ -295,15 +296,15 @@ void replacement_update_groove_gauge(int player, int note_judge)
             player_gauge_values[type] = (2 * 50);
 
         // switch gauges & judgement values
-        *player_gauge_value_ptr = player_gauge_values[type];
-        *player_chart_judgement_ptr = player_chart_judgements[type];
+        write_groove_gauge(player_gauge_value_addr, player_gauge_values[type]);
+        write_chart_judgement(player_chart_judgement_addr, player_chart_judgements[type]);
         player_gauge_type.set(type);
 
         // calculate the groove gauge value by calling the original
         update_groove_gauge_hook.call(player, note_judge);
 
         // take note of it
-        auto updated_gauge_value = *player_gauge_value_ptr;
+        auto updated_gauge_value = read_groove_gauge(player_gauge_value_addr);
 
         if (updated_gauge_value < (2 * 50) || updated_gauge_value > (100 * 50))
             updated_gauge_value = 0;
@@ -331,8 +332,8 @@ void replacement_update_groove_gauge(int player, int note_judge)
     // update to most appropriate values
     player_gauge_type.set(gauge_type);
     *player_gauge_option_ptr = gauge_type;
-    *player_chart_judgement_ptr = player_chart_judgements[gauge_type];
-    *player_gauge_value_ptr = player_gauge_values[gauge_type];
+    write_chart_judgement(player_chart_judgement_addr, player_chart_judgements[gauge_type]);
+    write_groove_gauge(player_gauge_value_addr, player_gauge_values[gauge_type]);
 }
 
 void* replacement_update_graph_data(void* a1, std::int16_t a2, std::int16_t a3)
